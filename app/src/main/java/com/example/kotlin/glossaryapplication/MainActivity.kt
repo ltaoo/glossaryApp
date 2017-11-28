@@ -5,10 +5,14 @@ import android.os.Bundle
 import android.support.v7.widget.LinearLayoutManager
 import android.text.InputType.TYPE_CLASS_TEXT
 import android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.*
 import org.jetbrains.anko.sdk25.coroutines.onClick
@@ -17,6 +21,7 @@ class MainActivity : AppCompatActivity(), OnItemClick {
 
     private var data = ArrayList<String>()
     private var adapter: Adapter? = null
+    val compositeDisposable: CompositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +36,26 @@ class MainActivity : AppCompatActivity(), OnItemClick {
 //        recyclerView.adapter = adapter
 //
 //        adapter!!.setItemClick(this)
+        // 请求数据
+        val repository = SearchRepositoryProvider.provideSearchRepository()
+
+        compositeDisposable.add(
+                repository.searchUsers("Lagos", "Java")
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribeOn(Schedulers.io())
+                        .subscribe ({
+                            result ->
+                            println(result)
+                            Log.d("Result", "There are ${result.items.size} Java developers in Lagos")
+                        }, { error ->
+                            error.printStackTrace()
+                        })
+        )
+    }
+
+    override fun onDestroy() {
+        compositeDisposable.clear()
+        super.onDestroy()
     }
 
     fun getData(): List<String> {
